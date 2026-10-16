@@ -28,7 +28,10 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddScoped<NeighbeatsSimilarityEngine>();
         serviceCollection.AddScoped<ILocalSimilarItemsProvider, NeighbeatsSimilarItemsProvider>();
 
-        var conventionLogger = applicationHost.Resolve<ILoggerFactory>().CreateLogger<NeighbeatsControllerConvention>();
-        serviceCollection.Configure<MvcOptions>(options => options.Conventions.Add(new NeighbeatsControllerConvention(conventionLogger)));
+        // ILoggerFactory is resolved lazily here (once options are first requested, after
+        // the container is built), not eagerly: RegisterServices runs while the container
+        // is still being assembled, so applicationHost.Resolve<T>() is not yet usable.
+        serviceCollection.AddOptions<MvcOptions>().Configure<ILoggerFactory>(
+            (options, loggerFactory) => options.Conventions.Add(new NeighbeatsControllerConvention(loggerFactory.CreateLogger<NeighbeatsControllerConvention>())));
     }
 }

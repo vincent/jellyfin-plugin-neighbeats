@@ -177,17 +177,17 @@
 
                 function showResult(answer, resultEl) {
                     resultEl.innerHTML = '';
-                    resultEl.appendChild(document.createTextNode(answer.tracks + ' track(s). '));
+                    resultEl.appendChild(document.createTextNode(answer.Tracks + ' track(s). '));
 
                     var link = document.createElement('a');
-                    link.href = '#/details?id=' + answer.playlistId;
+                    link.href = '#/details?id=' + answer.PlaylistId;
                     link.textContent = 'Open the playlist';
                     resultEl.appendChild(link);
 
-                    if (answer.skipped && answer.skipped.length) {
+                    if (answer.Skipped && answer.Skipped.length) {
                         resultEl.appendChild(document.createElement('br'));
                         resultEl.appendChild(document.createTextNode(
-                            answer.skipped.length + ' track(s) neighbeats found could not be matched in this library.'));
+                            answer.Skipped.length + ' track(s) neighbeats found could not be matched in this library.'));
                     }
                 }
 

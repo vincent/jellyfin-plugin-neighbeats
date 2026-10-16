@@ -1,3 +1,7 @@
+![GitHub license](https://img.shields.io/github/license/vincent/jellyfin-plugin-neighbeats.svg)
+![Latest Tag](https://img.shields.io/github/v/tag/vincent/jellyfin-plugin-neighbeats?label=latest-tag)
+![Media Server Support: Jellyfin 12.0](https://img.shields.io/badge/Media%20Server-Jellyfin%2012.0-blue?style=flat-square&logo=server&logoColor=white)
+
 # jellyfin-plugin-neighbeats
 
 A Jellyfin plugin for [neighbeats](https://github.com/vincent/neighbeats): pick two

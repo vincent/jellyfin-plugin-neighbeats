@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Jellyfin.Plugin.Neighbeats.Api;
 using Jellyfin.Plugin.Neighbeats.Client;
 using Microsoft.AspNetCore.Http;
@@ -40,5 +41,16 @@ internal static class TestHelpers
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(value, NeighbeatsJson.Options).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reads and deserializes the request body as <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="context">The request's <see cref="HttpContext"/>.</param>
+    /// <typeparam name="T">The type to deserialize the body as.</typeparam>
+    /// <returns>The deserialized body.</returns>
+    public static async Task<T?> ReadJsonAsync<T>(HttpContext context)
+    {
+        return await JsonSerializer.DeserializeAsync<T>(context.Request.Body, NeighbeatsJson.Options, context.RequestAborted).ConfigureAwait(false);
     }
 }

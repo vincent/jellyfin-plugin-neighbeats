@@ -1,5 +1,6 @@
 using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.Neighbeats.Api;
+using Jellyfin.Plugin.Neighbeats.Library;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Playlists;
 using MediaBrowser.Model.Playlists;
@@ -78,14 +79,5 @@ public class PlaylistBuilder(ILibraryManager libraryManager, IPlaylistManager pl
         return new PlaylistBuildResult(playlistId, resolved.Select(r => r.Track).ToList(), skipped);
     }
 
-    private Guid? ResolveItemId(TrackOut track)
-    {
-        if (!string.IsNullOrEmpty(track.ItemId) && Guid.TryParse(track.ItemId, out var parsed)
-            && libraryManager.GetItemById(parsed) is not null)
-        {
-            return parsed;
-        }
-
-        return libraryManager.FindByPath(track.Path, false)?.Id;
-    }
+    private Guid? ResolveItemId(TrackOut track) => ItemResolver.Resolve(libraryManager, track)?.Id;
 }

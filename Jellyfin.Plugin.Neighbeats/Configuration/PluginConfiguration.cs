@@ -33,4 +33,17 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets the per-request timeout, in seconds, for calls to neighbeats.
     /// </summary>
     public int TimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether neighbeats serves Jellyfin's native
+    /// <c>Items/{itemId}/InstantMix</c> endpoint, falling back to Jellyfin's own mix for
+    /// any shortfall or when neighbeats cannot answer.
+    /// </summary>
+    public bool EnableInstantMixOverride { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether neighbeats contributes to the "More like
+    /// this" rows on item detail pages, alongside Jellyfin's own similar-items logic.
+    /// </summary>
+    public bool EnableSimilarItemsOverride { get; set; }
 }

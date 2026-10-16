@@ -39,6 +39,20 @@
                         <input id="TimeoutSeconds" name="TimeoutSeconds" type="number" is="emby-input" min="1" />
                         <div class="fieldDescription">How long to wait for neighbeats to answer before giving up.</div>
                     </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input id="EnableInstantMixOverride" name="EnableInstantMixOverride" type="checkbox" is="emby-checkbox" />
+                            <span>Serve Instant Mix from neighbeats</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Right-click &rarr; Instant Mix on a song, album, artist, or playlist uses neighbeats' similarity graph, falling back to Jellyfin's own mix for any shortfall or when neighbeats is unreachable.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input id="EnableSimilarItemsOverride" name="EnableSimilarItemsOverride" type="checkbox" is="emby-checkbox" />
+                            <span>Include neighbeats in "More like this"</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Adds neighbeats' similarity graph as a source for the "More like this" row on item detail pages, alongside Jellyfin's own.</div>
+                    </div>
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                             <span>Save</span>
@@ -65,6 +79,8 @@
                         document.querySelector('#DefaultMode').value = config.DefaultMode;
                         document.querySelector('#PlaylistPrefix').value = config.PlaylistPrefix;
                         document.querySelector('#TimeoutSeconds').value = config.TimeoutSeconds;
+                        document.querySelector('#EnableInstantMixOverride').checked = config.EnableInstantMixOverride;
+                        document.querySelector('#EnableSimilarItemsOverride').checked = config.EnableSimilarItemsOverride;
                         Dashboard.hideLoadingMsg();
                     });
                 });
@@ -78,6 +94,8 @@
                         config.DefaultMode = document.querySelector('#DefaultMode').value;
                         config.PlaylistPrefix = document.querySelector('#PlaylistPrefix').value;
                         config.TimeoutSeconds = parseInt(document.querySelector('#TimeoutSeconds').value, 10);
+                        config.EnableInstantMixOverride = document.querySelector('#EnableInstantMixOverride').checked;
+                        config.EnableSimilarItemsOverride = document.querySelector('#EnableSimilarItemsOverride').checked;
                         ApiClient.updatePluginConfiguration(NeighbeatsConfig.pluginUniqueId, config).then(function (result) {
                             Dashboard.processPluginConfigurationUpdateResult(result);
                         });
@@ -96,7 +114,7 @@
                         url: ApiClient.getUrl('Neighbeats/Health'),
                         dataType: 'json'
                     }).then(function (health) {
-                        resultEl.textContent = 'neighbeats ' + health.version + ': ' + health.tracks + ' tracks indexed.';
+                        resultEl.textContent = 'neighbeats ' + health.Version + ': ' + health.Tracks + ' tracks indexed.';
                     }).catch(function (err) {
                         if (err && err.json) {
                             err.json().then(function (body) {

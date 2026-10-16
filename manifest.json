@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "1.1.0.0",
+                "changelog": "Initial bootstrap: health check, path and similar endpoints, playlist creation.\n",
+                "targetAbi": "12.2.0.0",
+                "sourceUrl": "https://github.com/vincent/jellyfin-plugin-neighbeats/releases/download/1.1.0/neighbeats_1.1.0.0.zip",
+                "checksum": "08d8484f53af6e4f66a4ef178b949f99",
+                "timestamp": "2026-10-16T20:55:36Z"
+            },
+            {
                 "version": "1.0.1.0",
                 "changelog": "Initial bootstrap: health check, path and similar endpoints, playlist creation.\n",
                 "targetAbi": "12.2.0.0",

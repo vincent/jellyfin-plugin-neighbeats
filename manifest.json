@@ -1,7 +1,7 @@
 [
     {
         "guid": "446738be-385c-4691-a21a-20ed10df531e",
-        "name": "neighbeats",
+        "name": "Neighbeats",
         "description": "Pick two tracks (or one, for \"similar\") and neighbeats builds a real Jellyfin playlist for the user who asked, routing or finding neighbours in its own index. neighbeats never writes to Jellyfin; this plugin owns the playlist.\n",
         "overview": "Build real Jellyfin playlists from neighbeats routes and similarity",
         "owner": "vincent",

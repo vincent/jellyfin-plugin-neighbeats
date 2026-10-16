@@ -23,7 +23,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     }
 
     /// <inheritdoc />
-    public override string Name => "neighbeats";
+    public override string Name => "Neighbeats";
 
     /// <inheritdoc />
     public override Guid Id => Guid.Parse("446738be-385c-4691-a21a-20ed10df531e");

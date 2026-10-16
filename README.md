@@ -16,11 +16,11 @@ Bootstrap in progress — see [ROADMAP.md](ROADMAP.md).
 
 Dashboard → Plugins → Repositories → add
 `https://raw.githubusercontent.com/vincent/jellyfin-plugin-neighbeats/main/manifest.json`,
-then install "neighbeats" from the catalog.
+then install "Neighbeats" from the catalog.
 
 ## Configure
 
-Dashboard → Plugins → neighbeats:
+Dashboard → Plugins → Neighbeats:
 
 - **Socket path** — where this Jellyfin server can reach `neighbeats serve`'s Unix
   socket (default `/run/neighbeats/neighbeats.sock`). If Jellyfin runs in Docker, mount

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>neighbeats</title>
+</head>
+<body>
+    <div id="NeighbeatsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="NeighbeatsConfigForm">
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SocketPath">Socket path</label>
+                        <input id="SocketPath" name="SocketPath" type="text" is="emby-input" />
+                        <div class="fieldDescription">Path to the neighbeats `serve` Unix socket, as this server sees it.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefaultLength">Default playlist length</label>
+                        <input id="DefaultLength" name="DefaultLength" type="number" is="emby-input" min="0" />
+                        <div class="fieldDescription">Number of tracks for a path request with no length given. 0 means the cheapest route, any length.</div>
+                    </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="DefaultMode">Default mode</label>
+                        <select is="emby-select" id="DefaultMode" name="DefaultMode" class="emby-select-withcolor emby-select">
+                            <option value="comfort">comfort</option>
+                            <option value="explore">explore</option>
+                            <option value="rediscover">rediscover</option>
+                            <option value="none">none</option>
+                        </select>
+                        <div class="fieldDescription">Taste mode used when a request does not specify one.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PlaylistPrefix">Playlist name prefix</label>
+                        <input id="PlaylistPrefix" name="PlaylistPrefix" type="text" is="emby-input" />
+                        <div class="fieldDescription">Prepended to every playlist name this plugin creates.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="TimeoutSeconds">Timeout (seconds)</label>
+                        <input id="TimeoutSeconds" name="TimeoutSeconds" type="number" is="emby-input" min="1" />
+                        <div class="fieldDescription">How long to wait for neighbeats to answer before giving up.</div>
+                    </div>
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Save</span>
+                        </button>
+                        <button is="emby-button" type="button" id="TestConnectionButton" class="raised block emby-button">
+                            <span>Test connection</span>
+                        </button>
+                    </div>
+                    <div id="TestConnectionResult" class="fieldDescription"></div>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var NeighbeatsConfig = {
+                pluginUniqueId: '446738be-385c-4691-a21a-20ed10df531e'
+            };
+
+            document.querySelector('#NeighbeatsConfigPage')
+                .addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(NeighbeatsConfig.pluginUniqueId).then(function (config) {
+                        document.querySelector('#SocketPath').value = config.SocketPath;
+                        document.querySelector('#DefaultLength').value = config.DefaultLength;
+                        document.querySelector('#DefaultMode').value = config.DefaultMode;
+                        document.querySelector('#PlaylistPrefix').value = config.PlaylistPrefix;
+                        document.querySelector('#TimeoutSeconds').value = config.TimeoutSeconds;
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+            document.querySelector('#NeighbeatsConfigForm')
+                .addEventListener('submit', function (e) {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(NeighbeatsConfig.pluginUniqueId).then(function (config) {
+                        config.SocketPath = document.querySelector('#SocketPath').value;
+                        config.DefaultLength = parseInt(document.querySelector('#DefaultLength').value, 10);
+                        config.DefaultMode = document.querySelector('#DefaultMode').value;
+                        config.PlaylistPrefix = document.querySelector('#PlaylistPrefix').value;
+                        config.TimeoutSeconds = parseInt(document.querySelector('#TimeoutSeconds').value, 10);
+                        ApiClient.updatePluginConfiguration(NeighbeatsConfig.pluginUniqueId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+
+                    e.preventDefault();
+                    return false;
+                });
+
+            document.querySelector('#TestConnectionButton')
+                .addEventListener('click', function () {
+                    var resultEl = document.querySelector('#TestConnectionResult');
+                    resultEl.textContent = 'Checking…';
+                    ApiClient.ajax({
+                        type: 'GET',
+                        url: ApiClient.getUrl('Neighbeats/Health'),
+                        dataType: 'json'
+                    }).then(function (health) {
+                        resultEl.textContent = 'neighbeats ' + health.version + ': ' + health.tracks + ' tracks indexed.';
+                    }).catch(function (err) {
+                        if (err && err.json) {
+                            err.json().then(function (body) {
+                                resultEl.textContent = (body && body.error) ? body.error : 'neighbeats is not reachable.';
+                            }).catch(function () {
+                                resultEl.textContent = 'neighbeats is not reachable.';
+                            });
+                        } else {
+                            resultEl.textContent = 'neighbeats is not reachable.';
+                        }
+                    });
+                });
+        </script>
+    </div>
+</body>
+</html>

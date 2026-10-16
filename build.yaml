@@ -1,0 +1,16 @@
+name: "neighbeats"
+guid: "446738be-385c-4691-a21a-20ed10df531e"
+version: "0.1.0.0"
+targetAbi: "12.2.0.0"
+framework: "net10.0"
+overview: "Build real Jellyfin playlists from neighbeats routes and similarity"
+description: >
+  Pick two tracks (or one, for "similar") and neighbeats builds a real Jellyfin
+  playlist for the user who asked, routing or finding neighbours in its own index.
+  neighbeats never writes to Jellyfin; this plugin owns the playlist.
+category: "General"
+owner: "vincent"
+artifacts:
+- "Jellyfin.Plugin.Neighbeats.dll"
+changelog: >
+  Initial bootstrap: health check, path and similar endpoints, playlist creation.

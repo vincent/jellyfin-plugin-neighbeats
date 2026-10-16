@@ -1,1 +1,20 @@
-[]
+[
+    {
+        "guid": "446738be-385c-4691-a21a-20ed10df531e",
+        "name": "neighbeats",
+        "description": "Pick two tracks (or one, for \"similar\") and neighbeats builds a real Jellyfin playlist for the user who asked, routing or finding neighbours in its own index. neighbeats never writes to Jellyfin; this plugin owns the playlist.\n",
+        "overview": "Build real Jellyfin playlists from neighbeats routes and similarity",
+        "owner": "vincent",
+        "category": "General",
+        "versions": [
+            {
+                "version": "1.0.0.0",
+                "changelog": "Initial bootstrap: health check, path and similar endpoints, playlist creation.\n",
+                "targetAbi": "12.2.0.0",
+                "sourceUrl": "https://github.com/vincent/jellyfin-plugin-neighbeats/releases/download//neighbeats_1.0.0.0.zip",
+                "checksum": "9ec167ee0463d36b03acebc6364f9992",
+                "timestamp": "2026-10-16T19:36:18Z"
+            }
+        ]
+    }
+]

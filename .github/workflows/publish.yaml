@@ -40,6 +40,7 @@ jobs:
         run: |
           raw="${{ inputs.version || github.event.release.tag_name }}"
           echo "value=${raw#v}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ github.event.release.tag_name || inputs.version }}" >> "$GITHUB_OUTPUT"
 
       - name: Install jprm
         run: pip install jprm==1.1.0
@@ -56,14 +57,14 @@ jobs:
       - name: Attach package to the GitHub release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ steps.version.outputs.tag }}
           files: ${{ steps.build.outputs.zip_path }}
 
       - name: Add this version to manifest.json
         run: |
           jprm repo add . \
             "${{ steps.build.outputs.zip_path }}" \
-            -U "https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/${{ steps.build.outputs.zip_name }}"
+            -U "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/${{ steps.build.outputs.zip_name }}"
 
       - name: Commit the updated manifest
         uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0

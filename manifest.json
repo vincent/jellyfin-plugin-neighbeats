@@ -11,7 +11,7 @@
                 "version": "1.0.0.0",
                 "changelog": "Initial bootstrap: health check, path and similar endpoints, playlist creation.\n",
                 "targetAbi": "12.2.0.0",
-                "sourceUrl": "https://github.com/vincent/jellyfin-plugin-neighbeats/releases/download//neighbeats_1.0.0.0.zip",
+                "sourceUrl": "https://github.com/vincent/jellyfin-plugin-neighbeats/releases/download/1.0.0/neighbeats_1.0.0.0.zip",
                 "checksum": "9ec167ee0463d36b03acebc6364f9992",
                 "timestamp": "2026-10-16T19:36:18Z"
             }

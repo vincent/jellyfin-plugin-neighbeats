@@ -13,10 +13,11 @@ for the protocol this plugin speaks.
 Bootstrap in progress — see [J-jellyfin-plugin.md](J-jellyfin-plugin.md) and
 [ROADMAP_1_foundation.md](ROADMAP_1_foundation.md).
 
-## Install (once released)
+## Install (once a release is tagged)
 
-Dashboard → Plugins → Repositories → add this plugin's manifest URL, then install
-"neighbeats" from the catalog.
+Dashboard → Plugins → Repositories → add
+`https://raw.githubusercontent.com/vincent/jellyfin-plugin-neighbeats/main/manifest.json`,
+then install "neighbeats" from the catalog.
 
 ## Configure
 
@@ -29,3 +30,18 @@ Dashboard → Plugins → neighbeats:
 - **Default playlist length**, **default mode**, **playlist name prefix**, **timeout**.
 - **Test connection** calls neighbeats' health endpoint and shows its version and track
   count, or says plainly that neighbeats isn't reachable.
+
+## Build a playlist
+
+Any logged-in user (not just admins) can open
+`<server>/web/ConfigurationPage?name=neighbeats-build` directly — it doesn't appear in
+the admin Dashboard's own menu, since that menu is admin-only anyway. Pick two tracks
+(or one, for similar), fill in the options, and **Build playlist** creates or updates a
+playlist owned by that user and links straight to it.
+
+## Releasing
+
+Tag a release (`vX.Y.Z.W`, matching Jellyfin's 4-part `AssemblyVersion`) and publish it
+on GitHub. `.github/workflows/publish.yaml` then builds the plugin zip with `jprm`,
+attaches it to that release, and commits the new version into `manifest.json` at the
+repo root — which is exactly the file the Install step above points at.

@@ -197,3 +197,10 @@ Namespace `Jellyfin.Plugin.Neighbeats`.
   4. Stop neighbeats-serve. Test connection and `Path` both say "neighbeats is not running",
      and Jellyfin keeps working.
 - Commits: one per milestone (B0+B1, B2, B3) on `main`, each only after asking.
+
+## Addendum (2026-10-16): B4 and B5
+
+B0–B3 were verified live on the real server, then B4 and B5 were done directly against
+[J-jellyfin-plugin.md](J-jellyfin-plugin.md)'s own task list rather than a separate plan
+file here (no architectural surprises worth a dedicated write-up — see that file's B4/B5
+sections for what was built and verified, including a real local `jprm` run).

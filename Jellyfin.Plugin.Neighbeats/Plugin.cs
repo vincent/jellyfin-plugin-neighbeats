@@ -42,6 +42,18 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             {
                 Name = Name,
                 EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.configPage.html"
+            },
+            new PluginPageInfo
+            {
+                Name = "neighbeats-build",
+                DisplayName = "Build a playlist",
+
+                // Jellyfin's plugin-page listing (which populates the admin Dashboard menu)
+                // requires elevation, but the page itself (GET web/ConfigurationPage?name=)
+                // does not. Any authenticated user can open it directly; it is meant for
+                // them, not for the admin Dashboard, so it stays out of that menu.
+                EnableInMainMenu = false,
+                EmbeddedResourcePath = $"{GetType().Namespace}.Web.build.html"
             }
         ];
     }

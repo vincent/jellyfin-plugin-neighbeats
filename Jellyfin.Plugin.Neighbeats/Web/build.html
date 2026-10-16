@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>neighbeats</title>
+    <style>
+        .neighbeatsResults {
+            max-height: 12em;
+            overflow-y: auto;
+        }
+        .neighbeatsResultRow {
+            padding: 0.4em 0.6em;
+            cursor: pointer;
+            border-radius: 0.2em;
+        }
+        .neighbeatsResultRow:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="NeighbeatsBuildPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select">
+        <div data-role="content">
+            <div class="content-primary">
+                <h1>Build a playlist with neighbeats</h1>
+
+                <div class="selectContainer">
+                    <label class="selectLabel" for="RequestMode">What do you want?</label>
+                    <select is="emby-select" id="RequestMode" class="emby-select-withcolor emby-select">
+                        <option value="path">A path between two tracks</option>
+                        <option value="similar">Tracks similar to one</option>
+                    </select>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" id="FromLabel" for="FromSearch">From</label>
+                    <input id="FromSearch" type="text" is="emby-input" autocomplete="off" placeholder="Search a track…" />
+                    <div id="FromResults" class="neighbeatsResults"></div>
+                    <div id="FromSelected" class="fieldDescription"></div>
+                </div>
+
+                <div id="ToPicker" class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="ToSearch">To</label>
+                    <input id="ToSearch" type="text" is="emby-input" autocomplete="off" placeholder="Search a track…" />
+                    <div id="ToResults" class="neighbeatsResults"></div>
+                    <div id="ToSelected" class="fieldDescription"></div>
+                </div>
+
+                <div id="PathOptions">
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="Length">Length</label>
+                        <input id="Length" type="number" min="0" is="emby-input" />
+                        <div class="fieldDescription">Number of tracks. Leave empty for this server's default, or 0 for the cheapest route, any length.</div>
+                    </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="Mode">Mode</label>
+                        <select is="emby-select" id="Mode" class="emby-select-withcolor emby-select">
+                            <option value="comfort">comfort</option>
+                            <option value="explore">explore</option>
+                            <option value="rediscover">rediscover</option>
+                            <option value="none">none</option>
+                        </select>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="Theme">Theme (optional)</label>
+                        <input id="Theme" type="text" is="emby-input" placeholder="e.g. sea, night" />
+                    </div>
+                </div>
+
+                <div id="SimilarOptions" style="display: none;">
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="Count">How many tracks</label>
+                        <input id="Count" type="number" min="1" is="emby-input" value="20" />
+                    </div>
+                </div>
+
+                <div>
+                    <button is="emby-button" type="button" id="BuildButton" class="raised button-submit block emby-button">
+                        <span>Build playlist</span>
+                    </button>
+                </div>
+                <div id="BuildResult" class="fieldDescription"></div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var state = { from: null, to: null };
+
+                function el(id) {
+                    return document.getElementById(id);
+                }
+
+                function numberOrNull(rawValue) {
+                    return rawValue === '' ? null : parseInt(rawValue, 10);
+                }
+
+                function updateModeUi() {
+                    var mode = el('RequestMode').value;
+                    el('PathOptions').style.display = mode === 'path' ? '' : 'none';
+                    el('SimilarOptions').style.display = mode === 'similar' ? '' : 'none';
+                    el('ToPicker').style.display = mode === 'path' ? '' : 'none';
+                    el('FromLabel').textContent = mode === 'path' ? 'From' : 'Track';
+                }
+
+                function debounce(fn, waitMs) {
+                    var timer;
+                    return function () {
+                        var args = arguments;
+                        clearTimeout(timer);
+                        timer = setTimeout(function () {
+                            fn.apply(null, args);
+                        }, waitMs);
+                    };
+                }
+
+                function renderResults(items, resultsEl, onPick) {
+                    resultsEl.innerHTML = '';
+                    items.forEach(function (item) {
+                        var row = document.createElement('div');
+                        row.className = 'neighbeatsResultRow';
+                        var byline = (item.Artists && item.Artists.length) ? item.Artists.join(', ') + ' — ' : '';
+                        row.textContent = byline + item.Name;
+                        row.addEventListener('click', function () {
+                            onPick(item);
+                            resultsEl.innerHTML = '';
+                        });
+                        resultsEl.appendChild(row);
+                    });
+                }
+
+                function searchTracks(term, resultsEl, onPick) {
+                    resultsEl.innerHTML = '';
+                    if (!term) {
+                        return;
+                    }
+
+                    ApiClient.getItems(ApiClient.getCurrentUserId(), {
+                        searchTerm: term,
+                        IncludeItemTypes: 'Audio',
+                        Recursive: true,
+                        Limit: 10
+                    }).then(function (result) {
+                        renderResults(result.Items || [], resultsEl, onPick);
+                    });
+                }
+
+                function wirePicker(searchId, resultsId, selectedId, stateKey) {
+                    var searchEl = el(searchId);
+                    var resultsEl = el(resultsId);
+                    var selectedEl = el(selectedId);
+                    searchEl.addEventListener('input', debounce(function () {
+                        searchTracks(searchEl.value, resultsEl, function (item) {
+                            state[stateKey] = item;
+                            selectedEl.textContent = 'Selected: ' + item.Name;
+                            searchEl.value = '';
+                        });
+                    }, 300));
+                }
+
+                wirePicker('FromSearch', 'FromResults', 'FromSelected', 'from');
+                wirePicker('ToSearch', 'ToResults', 'ToSelected', 'to');
+
+                el('RequestMode').addEventListener('change', updateModeUi);
+                updateModeUi();
+
+                function showError(err, resultEl) {
+                    if (err && typeof err.json === 'function') {
+                        err.json().then(function (body) {
+                            resultEl.textContent = (body && body.error) ? body.error : 'neighbeats could not build this playlist.';
+                        }).catch(function () {
+                            resultEl.textContent = 'neighbeats could not build this playlist.';
+                        });
+                    } else {
+                        resultEl.textContent = 'neighbeats could not build this playlist.';
+                    }
+                }
+
+                function showResult(answer, resultEl) {
+                    resultEl.innerHTML = '';
+                    resultEl.appendChild(document.createTextNode(answer.tracks + ' track(s). '));
+
+                    var link = document.createElement('a');
+                    link.href = '#/details?id=' + answer.playlistId;
+                    link.textContent = 'Open the playlist';
+                    resultEl.appendChild(link);
+
+                    if (answer.skipped && answer.skipped.length) {
+                        resultEl.appendChild(document.createElement('br'));
+                        resultEl.appendChild(document.createTextNode(
+                            answer.skipped.length + ' track(s) neighbeats found could not be matched in this library.'));
+                    }
+                }
+
+                el('BuildButton').addEventListener('click', function () {
+                    var resultEl = el('BuildResult');
+                    var mode = el('RequestMode').value;
+
+                    if (!state.from) {
+                        resultEl.textContent = mode === 'path' ? 'Pick a starting track first.' : 'Pick a track first.';
+                        return;
+                    }
+
+                    if (mode === 'path' && !state.to) {
+                        resultEl.textContent = 'Pick a destination track first.';
+                        return;
+                    }
+
+                    resultEl.textContent = 'Building…';
+
+                    var url;
+                    var body;
+                    if (mode === 'path') {
+                        url = ApiClient.getUrl('Neighbeats/Path');
+                        body = {
+                            fromItemId: state.from.Id,
+                            toItemId: state.to.Id,
+                            length: numberOrNull(el('Length').value),
+                            mode: el('Mode').value,
+                            theme: el('Theme').value || null
+                        };
+                    } else {
+                        url = ApiClient.getUrl('Neighbeats/Similar');
+                        body = {
+                            itemId: state.from.Id,
+                            count: numberOrNull(el('Count').value)
+                        };
+                    }
+
+                    ApiClient.ajax({
+                        type: 'POST',
+                        url: url,
+                        data: JSON.stringify(body),
+                        contentType: 'application/json',
+                        dataType: 'json'
+                    }).then(function (answer) {
+                        showResult(answer, resultEl);
+                    }).catch(function (err) {
+                        showError(err, resultEl);
+                    });
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

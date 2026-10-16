@@ -78,7 +78,7 @@ public class NeighbeatsController(
         var neighbeatsRequest = new PathRequest(
             new TrackRef(from.Id.ToString(), from.Path),
             new TrackRef(to.Id.ToString(), to.Path),
-            request.Length is > 0 ? request.Length : config.DefaultLength,
+            request.Length ?? config.DefaultLength,
             request.Mode ?? config.DefaultMode,
             auth.User.Username,
             request.Theme,

@@ -1,18 +1,72 @@
-name: '🚀 Publish Plugin'
+name: '🚀 Release Plugin'
+
+# This plugin is not part of Jellyfin's own jellyfin-meta-plugins collection, so unlike
+# the template's original publish.yaml, this does not deploy to Jellyfin's infrastructure
+# (that needs deploy-host/deploy-user/deploy-key secrets we don't have and shouldn't ask
+# anyone else for). Instead: jprm builds the plugin zip, it's attached to the GitHub
+# release, and manifest.json at the repo root (raw.githubusercontent.com) is updated with
+# the new version, pointing at that release asset.
 
 on:
   release:
     types:
       - released
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g. 0.1.0.0). Defaults to the triggering release''s tag.'
+        required: false
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
-  call:
-    uses: jellyfin/jellyfin-meta-plugins/.github/workflows/publish.yaml@master
-    with:
-      version: ${{ github.event.release.tag_name }}
-      is-unstable: ${{ github.event.release.prerelease }}
-    secrets:
-      deploy-host: ${{ secrets.DEPLOY_HOST }}
-      deploy-user: ${{ secrets.DEPLOY_USER }}
-      deploy-key: ${{ secrets.DEPLOY_KEY }}
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Resolve version
+        id: version
+        run: |
+          raw="${{ inputs.version || github.event.release.tag_name }}"
+          echo "value=${raw#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Install jprm
+        run: pip install jprm==1.1.0
+
+      - name: Build plugin package
+        id: build
+        run: |
+          mkdir -p out
+          jprm plugin build . --version "${{ steps.version.outputs.value }}" --dotnet-framework net10.0 -o out
+          zip_path=$(ls out/*.zip)
+          echo "zip_path=${zip_path}" >> "$GITHUB_OUTPUT"
+          echo "zip_name=$(basename "${zip_path}")" >> "$GITHUB_OUTPUT"
+
+      - name: Attach package to the GitHub release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: ${{ steps.build.outputs.zip_path }}
+
+      - name: Add this version to manifest.json
+        run: |
+          jprm repo add . \
+            "${{ steps.build.outputs.zip_path }}" \
+            -U "https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/${{ steps.build.outputs.zip_name }}"
+
+      - name: Commit the updated manifest
+        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
+        with:
+          commit_message: 'chore: add ${{ steps.version.outputs.value }} to the plugin manifest'
+          file_pattern: manifest.json

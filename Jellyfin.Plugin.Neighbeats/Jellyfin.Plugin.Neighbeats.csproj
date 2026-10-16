@@ -28,6 +28,8 @@
   <ItemGroup>
     <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" />
+    <None Remove="Web\build.html" />
+    <EmbeddedResource Include="Web\build.html" />
   </ItemGroup>
 
 </Project>

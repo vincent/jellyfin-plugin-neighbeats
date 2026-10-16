@@ -69,11 +69,11 @@ below is checked against the live server and NuGet, never copied from the docs.
       from Jellyfin's own `Jellyfin.Api/Constants/InternalClaimTypes.cs`) is an
       internal, unpublished string — avoid depending on it directly.
       To go from a `Guid` to a full `User` elsewhere, `IUserManager.GetUserById(Guid)`.
-- [ ] Docker: the Jellyfin container sees the socket. Mount `neighbeats/run` to
+- [x] Docker: the Jellyfin container sees the socket. Mount `neighbeats/run` to
       `/run/neighbeats` and share the PGID, then
       `docker exec jellyfin curl --unix-socket /run/neighbeats/neighbeats.sock http://x/v1/health`.
       If the image has no curl, check from a throwaway container with the same mount and user.
-      **Vincent to run** — this needs the live server/container.
+      **Verified on the live server (2026-10-16).**
 
 ### B1: skeleton that loads
 
@@ -92,10 +92,9 @@ below is checked against the live server and NuGet, never copied from the docs.
 - [x] Dashboard config page (embedded HTML + vanilla JS; jQuery is on its way out)
       with the settings above and a **Test connection** button. The button calls the
       plugin's health endpoint and shows version and track count.
-- [ ] Exit: the DLL is copied to `<jellyfin data>/plugins/neighbeats/`, the plugin
+- [x] Exit: the DLL is copied to `<jellyfin data>/plugins/neighbeats/`, the plugin
       shows **Active** after a restart, and the config page saves.
-      **Vincent to run** — needs the live server. See the handoff commands in
-      ROADMAP_1_foundation.md.
+      **Verified on the live server (2026-10-16).**
 
 ### B2: talk to serve
 
@@ -129,33 +128,59 @@ below is checked against the live server and NuGet, never copied from the docs.
       4 more unit tests cover `PlaylistBuilder`'s resolve/skip/update-vs-create logic
       (`Moq` against `ILibraryManager`/`IPlaylistManager`). **11/11 tests passing**,
       `dotnet build -c Release`: 0 warnings, 0 errors.
-- [ ] Exit: with curl and a user token, `POST Neighbeats/Path` with two item ids creates
+- [x] Exit: with curl and a user token, `POST Neighbeats/Path` with two item ids creates
       a playlist that shows up and plays in the web client and in one mobile client.
-      **Vincent to run** — needs the live server. See the handoff commands in
-      ROADMAP_1_foundation.md.
+      **Verified on the live server (2026-10-16).**
 
 ### B4: a way to click it
 
 Jellyfin has no supported hook for adding buttons to the item page, so the bootstrap
 ships the smallest UI that works and leaves the rest for later:
 
-- [ ] A user-facing plugin page with two track pickers (search through the regular
+- [x] A user-facing plugin page with two track pickers (search through the regular
       `/Items?searchTerm=&IncludeItemTypes=Audio` API), length, mode and theme, plus a
-      **Build** button that links to the new playlist.
+      **Build** button that links to the new playlist. Also covers "similar" (one
+      picker + count), toggled by a mode select.
+      **Verified (2026-10-16):** the endpoint serving a plugin page's HTML
+      (`GET web/ConfigurationPage?name=`) carries no admin-only `[Authorize]` — only
+      the Dashboard *menu listing* endpoint does. So any authenticated non-admin user
+      can open the page directly by its URL; it's just invisible in the admin
+      Dashboard's own nav (`EnableInMainMenu = false`), which doesn't matter since that
+      nav is admin-only anyway. Not yet deployed/clicked through on the live server.
 - [ ] Later, not in bootstrap: context-menu entries through a client-side script
       injection plugin, or an "Instant Mix"-style integration if the server exposes one.
       Investigate both after B3 works.
 
 ### B5: release
 
-- [ ] GitHub Actions from the template (build + `jprm` packaging). Tagging produces the
+- [x] GitHub Actions from the template (build + `jprm` packaging). Tagging produces the
       zip, its checksum and a `manifest.json` entry (`guid`, `name`, `description`,
       `owner`, `overview`, `category`, `versions[]` with `version`, `targetAbi`,
       `sourceUrl`, `checksum`, `timestamp`, `changelog`).
-- [ ] Host the manifest (GitHub Pages or a raw file in the repo). Install by adding it
+      The template's own `publish.yaml` deploys to Jellyfin's own infrastructure
+      (`jellyfin-meta-plugins`' reusable workflow, needing `deploy-host`/`deploy-user`/
+      `deploy-key` secrets we don't have, for a plugin that also isn't part of that
+      official collection) — replaced with our own `.github/workflows/publish.yaml`
+      that runs `jprm plugin build` + `jprm repo add` ourselves and commits the result.
+      **Verified locally**, not just read from docs: installed `jprm` 1.1.0 via `pipx`
+      and ran `jprm plugin build . --version 0.1.0.0 --dotnet-framework net10.0` for
+      real — it zips `meta.json` + `Jellyfin.Plugin.Neighbeats.dll` only (matches
+      `build.yaml`'s `artifacts:`, not the whole output tree), and `jprm repo add .`
+      against a seeded `manifest.json` produces exactly the shape above.
+- [x] Host the manifest (GitHub Pages or a raw file in the repo). Install by adding it
       under Dashboard → Plugins → Repositories.
-- [ ] neighbeats side: link the plugin from README and [operations.md](../operations.md),
-      and replace the plugin line in [later.md](later.md).
+      Chose the **raw-file-in-repo** option: `manifest.json` at the repo root (seeded
+      as `[]`), installed from
+      `https://raw.githubusercontent.com/vincent/jellyfin-plugin-neighbeats/main/manifest.json`.
+      No GitHub Pages setup needed. `publish.yaml` commits each release's entry into it.
+- [x] neighbeats side: link the plugin from README and [operations.md](../operations.md),
+      and replace the plugin line in [later.md](later.md). Done, committed locally in
+      that repo (not pushed).
+- [ ] **Not done — needs you:** actually tag and publish a GitHub release (e.g.
+      `v0.1.0.0`) to exercise `publish.yaml` for real and get the first manifest entry
+      with a genuine release asset URL. Tagging/publishing is outward-facing (creates a
+      public release others may see), so left for you to trigger; nothing has been
+      pushed to `origin` this session.
 
 ## Exit criteria
 

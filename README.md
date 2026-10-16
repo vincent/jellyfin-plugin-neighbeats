@@ -10,10 +10,9 @@ for the protocol this plugin speaks.
 
 ## Status
 
-Bootstrap in progress — see [J-jellyfin-plugin.md](J-jellyfin-plugin.md) and
-[ROADMAP_1_foundation.md](ROADMAP_1_foundation.md).
+Bootstrap in progress — see [ROADMAP.md](ROADMAP.md).
 
-## Install (once a release is tagged)
+## Install
 
 Dashboard → Plugins → Repositories → add
 `https://raw.githubusercontent.com/vincent/jellyfin-plugin-neighbeats/main/manifest.json`,

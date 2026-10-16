@@ -74,7 +74,7 @@ workflows are copied in but left alone until B5.
 
 Namespace `Jellyfin.Plugin.Neighbeats`.
 
-- [ ] Repo files:
+- [x] Repo files:
       - `Jellyfin.Plugin.Neighbeats.slnx`
       - `Directory.Build.props` (version 0.1.0.0)
       - `.editorconfig`, `.gitignore`
@@ -82,50 +82,56 @@ Namespace `Jellyfin.Plugin.Neighbeats`.
       - `build.yaml`: name `neighbeats`, fresh guid, owner `vincent`, category General,
         net10.0, targetAbi 12.2.0.0, artifact `Jellyfin.Plugin.Neighbeats.dll`
       - `README.md`, short: what it does, install, socket and PGID
-- [ ] `Jellyfin.Plugin.Neighbeats/Jellyfin.Plugin.Neighbeats.csproj`: net10.0, both Jellyfin
+- [x] `Jellyfin.Plugin.Neighbeats/Jellyfin.Plugin.Neighbeats.csproj`: net10.0, both Jellyfin
       packages at 12.2.0 with `<ExcludeAssets>runtime</ExcludeAssets>`, the template's
       analyzers, `TreatWarningsAsErrors`, `Configuration/configPage.html` embedded.
-- [ ] `Plugin.cs`: `BasePlugin<PluginConfiguration>, IHasWebPages`, constructor
+- [x] `Plugin.cs`: `BasePlugin<PluginConfiguration>, IHasWebPages`, constructor
       `(IApplicationPaths, IXmlSerializer)`, `Name => "neighbeats"`, static `Instance`.
-- [ ] `Configuration/PluginConfiguration.cs`: `SocketPath` (`/run/neighbeats/neighbeats.sock`),
+- [x] `Configuration/PluginConfiguration.cs`: `SocketPath` (`/run/neighbeats/neighbeats.sock`),
       `DefaultLength = 15`, `DefaultMode = "comfort"`, `PlaylistPrefix = "neighbeats: "`,
       `TimeoutSeconds = 30`.
-- [ ] `Configuration/configPage.html`: vanilla JS (`ApiClient.getPluginConfiguration` /
+- [x] `Configuration/configPage.html`: vanilla JS (`ApiClient.getPluginConfiguration` /
       `updatePluginConfiguration`) with the fields above. A **Test connection** button calls
       `GET Neighbeats/Health` and shows the version and track count, or the error in plain words.
+      Built `-c Release`: 0 warnings, 0 errors. Not yet deployed to a live server (that's on
+      Vincent — see the handoff commands at the bottom of this file).
 
-## B2: client
+## B2: client — done
 
-- [ ] `Api/Models.cs`: records `TrackRef`, `TrackOut`, `PathRequest`, `PathResponse`,
-      `SimilarRequest`, `SimilarResponse`, `HealthResponse`, `ErrorResponse`. They share one
-      `JsonSerializerOptions { PropertyNamingPolicy = SnakeCaseLower, DefaultIgnoreCondition = WhenWritingNull }`.
-- [ ] `Client/UnixSocketHandler.cs`: a `SocketsHttpHandler` whose `ConnectCallback` reads
-      `Plugin.Instance.Configuration.SocketPath` on every connect. Tests swap it through a
-      `Func<string>`.
-- [ ] `Client/NeighbeatsClient.cs`: typed HttpClient with `BaseAddress http://neighbeats` and
-      methods `HealthAsync`, `PathAsync`, `SimilarAsync`. A linked CTS applies the timeout from
-      the config to each request. Failures throw
+- [x] `Api/*.cs`: one file per record (`TrackRef`, `TrackOut`, `PathRequest`, `PathResponse`,
+      `SimilarRequest`, `SimilarResponse`, `HealthResponse`, `ErrorResponse`) — StyleCop's
+      SA1402/SA1649 forbid multiple types per file, so these aren't in one `Models.cs` as
+      planned. They share `Api/NeighbeatsJson.cs`'s
+      `JsonSerializerOptions { PropertyNamingPolicy = SnakeCaseLower, DefaultIgnoreCondition = WhenWritingNull, PropertyNameCaseInsensitive = true }`.
+- [x] `Client/UnixSocketHandler.cs`: **not** a `SocketsHttpHandler` subclass — the type is
+      sealed, so this is a static `Create(Func<string> socketPathProvider)` factory instead,
+      whose `ConnectCallback` reads the provider on every connect.
+- [x] `Client/NeighbeatsClient.cs`, `Client/NeighbeatsErrorKind.cs`,
+      `Client/NeighbeatsException.cs`: typed `HttpClient` with `BaseAddress http://neighbeats`,
+      methods `HealthAsync`, `PathAsync`, `SimilarAsync`. A linked CTS (caller token +
+      per-call timeout from `Func<int> timeoutSecondsProvider`, defaulting to
+      `Plugin.Instance.Configuration.TimeoutSeconds`) applies the timeout. Failures throw
       `NeighbeatsException(kind, message, why?, partialTracks?)`:
 
       | Kind | Cause | Message |
       |------|-------|---------|
-      | NotRunning | `SocketException` or missing socket file | "neighbeats is not running" |
+      | NotRunning | `HttpRequestException` wrapping a `SocketException` | "neighbeats is not running" |
       | NotFound | 404 | neighbeats' `error` |
-      | NoRoute | 422 | `error`, plus `why` |
-      | Timeout | `TaskCanceledException` not caused by the caller's token | its own message |
-      | BadRequest / Server | 400 / 500 | neighbeats' message |
-- [ ] `PluginServiceRegistrator.cs`:
-      `AddHttpClient<NeighbeatsClient>().ConfigurePrimaryHttpMessageHandler(...)` and the
-      `PlaylistBuilder` registration (singleton or scoped, depending on B0).
-- [ ] `Jellyfin.Plugin.Neighbeats.Tests/` (xUnit, net10.0, `FrameworkReference Microsoft.AspNetCore.App`).
-      The fake server is a minimal Kestrel app on `ListenUnixSocket` with a temp path. Tests:
+      | NoRoute | 422 | `error`, plus `why` and the partial `tracks` |
+      | Timeout | `OperationCanceledException` not caused by the caller's token | its own message |
+      | BadRequest / ServerError | 400 / 500 (anything else unmapped) | neighbeats' message, or a generic one if it sent no JSON body |
+- [x] `PluginServiceRegistrator.cs`: `AddHttpClient<NeighbeatsClient>(...).ConfigurePrimaryHttpMessageHandler(() => UnixSocketHandler.Create(...))`.
+      `PlaylistBuilder` registration deferred to B3.
+- [x] `Jellyfin.Plugin.Neighbeats.Tests/` (xUnit 2.9.2, net10.0, `FrameworkReference Microsoft.AspNetCore.App`).
+      `FakeNeighbeatsServer` is a minimal `WebApplication` on `ListenUnixSocket` with a temp
+      path; `TestHelpers` builds a client against it. 7 tests, all passing:
       - health, happy path
       - path, happy path
-      - 404
-      - 422 with `why`
+      - 404 → `NotFound` with neighbeats' message
+      - 422 → `NoRoute` with `Why` and `PartialTracks`
       - null `item_id` deserializes
-      - missing socket → NotRunning
-      - timeout
+      - missing socket → `NotRunning`
+      - server too slow → `Timeout`
 
       The client tests should not touch Jellyfin types, so they need no Jellyfin runtime assets.
 

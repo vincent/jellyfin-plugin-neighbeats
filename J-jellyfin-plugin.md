@@ -77,51 +77,62 @@ below is checked against the live server and NuGet, never copied from the docs.
 
 ### B1: skeleton that loads
 
-- [ ] Repo from the template. Rename the project, namespace and `pluginName` in
+- [x] Repo from the template. Rename the project, namespace and `pluginName` in
       `.vscode/settings.json`. Generate a fresh GUID (`uuidgen`) for `Plugin.Id` and
       `build.yaml` `guid`. Set `build.yaml` `name`, `targetAbi`, `framework`, `owner`
       and `category: General`.
-- [ ] `PackageReference` with `<ExcludeAssets>runtime</ExcludeAssets>` on both Jellyfin
+      No `uuidgen` on this machine; used `python3 -c 'import uuid; print(uuid.uuid4())'`.
+- [x] `PackageReference` with `<ExcludeAssets>runtime</ExcludeAssets>` on both Jellyfin
       packages. Without it the plugin does not register.
-- [ ] `Plugin : BasePlugin<PluginConfiguration>, IHasWebPages`, with the constructor
+- [x] `Plugin : BasePlugin<PluginConfiguration>, IHasWebPages`, with the constructor
       `(IApplicationPaths, IXmlSerializer)` and `Name` "neighbeats".
-- [ ] `PluginConfiguration : BasePluginConfiguration` holds `SocketPath` (default
+- [x] `PluginConfiguration : BasePluginConfiguration` holds `SocketPath` (default
       `/run/neighbeats/neighbeats.sock`), `DefaultLength` (15), `DefaultMode` (comfort),
       `PlaylistPrefix` ("neighbeats: ") and `TimeoutSeconds` (30).
-- [ ] Dashboard config page (embedded HTML + vanilla JS; jQuery is on its way out)
+- [x] Dashboard config page (embedded HTML + vanilla JS; jQuery is on its way out)
       with the settings above and a **Test connection** button. The button calls the
       plugin's health endpoint and shows version and track count.
 - [ ] Exit: the DLL is copied to `<jellyfin data>/plugins/neighbeats/`, the plugin
       shows **Active** after a restart, and the config page saves.
+      **Vincent to run** — needs the live server. See the handoff commands in
+      ROADMAP_1_foundation.md.
 
 ### B2: talk to serve
 
-- [ ] `NeighbeatsClient`, registered through `IPluginServiceRegistrator`
+- [x] `NeighbeatsClient`, registered through `IPluginServiceRegistrator`
       (`AddHttpClient<NeighbeatsClient>().ConfigurePrimaryHttpMessageHandler(...)`), reads
       the socket path from the config on each connect, so a change needs no restart.
-- [ ] Records that mirror api.md: `TrackRef`, `TrackOut`, `PathRequest`, `PathResponse`,
+- [x] Records that mirror api.md: `TrackRef`, `TrackOut`, `PathRequest`, `PathResponse`,
       `SimilarRequest`, `SimilarResponse`, `HealthResponse`, using snake_case JSON
-      (`JsonNamingPolicy.SnakeCaseLower`).
-- [ ] Error mapping: socket missing or refused → "neighbeats is not running"; 404 →
+      (`JsonNamingPolicy.SnakeCaseLower`). One file per record (StyleCop forbids more
+      than one type per file), not a single `Models.cs`.
+- [x] Error mapping: socket missing or refused → "neighbeats is not running"; 404 →
       neighbeats' message (unknown or unanalysed track); 422 → "no route", with `why`;
       timeout → its own message. Never a bare 500.
-- [ ] Unit tests (xUnit) against a fake server on a temp Unix socket
-      (`Kestrel ListenUnixSocket`): happy path, 404, 422, null item id.
+- [x] Unit tests (xUnit) against a fake server on a temp Unix socket
+      (`Kestrel ListenUnixSocket`): happy path, 404, 422, null item id. 7/7 passing.
 
 ### B3: build the playlist
 
-- [ ] `PlaylistBuilder`: takes the answer, resolves null ids via `FindByPath`, drops
+- [x] `PlaylistBuilder`: takes the answer, resolves null ids via `FindByPath`, drops
       what still fails, and calls `CreatePlaylist` with `UserId` = caller,
       `MediaType` = Audio and name `prefix + "A → B"` (similar: `prefix + "like A"`).
-      It returns the playlist id, the track count and the skipped tracks.
-- [ ] API controller `[Route("Neighbeats")]`, authenticated as a normal user:
+      It returns the playlist id, the track count and the skipped tracks. Also: if a
+      playlist of that name already exists for the caller, `UpdatePlaylist` replaces its
+      items instead of creating a duplicate (see Open questions, now answered).
+- [x] API controller `[Route("Neighbeats")]`, authenticated as a normal user:
       - `GET  Neighbeats/Health` passes the health answer through (used by the config page).
       - `POST Neighbeats/Path` `{fromItemId, toItemId, length?, mode?, theme?}`. The plugin
         adds the paths and the user name (for taste) itself, then answers
         `{playlistId, tracks, skipped, notes}`.
       - `POST Neighbeats/Similar` `{itemId, count?}`, same answer.
+      4 more unit tests cover `PlaylistBuilder`'s resolve/skip/update-vs-create logic
+      (`Moq` against `ILibraryManager`/`IPlaylistManager`). **11/11 tests passing**,
+      `dotnet build -c Release`: 0 warnings, 0 errors.
 - [ ] Exit: with curl and a user token, `POST Neighbeats/Path` with two item ids creates
       a playlist that shows up and plays in the web client and in one mobile client.
+      **Vincent to run** — needs the live server. See the handoff commands in
+      ROADMAP_1_foundation.md.
 
 ### B4: a way to click it
 

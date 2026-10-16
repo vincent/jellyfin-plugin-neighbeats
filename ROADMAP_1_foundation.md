@@ -135,32 +135,52 @@ Namespace `Jellyfin.Plugin.Neighbeats`.
 
       The client tests should not touch Jellyfin types, so they need no Jellyfin runtime assets.
 
-## B3: playlist
+## B3: playlist — done
 
-- [ ] `Playlists/PlaylistBuilder.cs` takes a list of `TrackOut` and a name. For each track:
+- [x] `Playlists/PlaylistBuilder.cs` takes a list of `TrackOut` and a name. For each track:
       - parse `item_id` and look it up with `ILibraryManager.GetItemById`
       - if the id is null or unknown, try `FindByPath(path, false)`
-      - if that fails too, add the track to `skipped` (artist – title, path)
+      - if that fails too, add the track to `skipped`
 
-      Then look up an existing playlist owned by the caller with the target name
-      (`IPlaylistManager.GetPlaylists(userId)`); if found, call
-      `UpdatePlaylist(new PlaylistUpdateRequest { Id, UserId, Ids = resolvedItemIds })` to
-      replace its items; otherwise `CreatePlaylist` with the caller's `UserId` and
-      `MediaType.Audio`. Return `{PlaylistId, Tracks, Skipped}`. Names: `prefix + "A → B"`
-      for a path, `prefix + "like A"` for similar.
-      - Keep id resolution separate from playlist creation, so the resolution logic can be
-        unit-tested without the Jellyfin runtime.
-- [ ] `Api/NeighbeatsController.cs`, `[ApiController, Route("Neighbeats"), Authorize]`:
+      Then looks up an existing playlist owned by the caller with the target name
+      (`IPlaylistManager.GetPlaylists(userId)`); if found, calls
+      `UpdatePlaylist(new PlaylistUpdateRequest { Id, UserId, Ids })` to replace its items;
+      otherwise `CreatePlaylist` with the caller's `UserId` and `MediaType.Audio`. Returns
+      `PlaylistBuildResult { PlaylistId, Tracks, Skipped }` (`PlaylistId` is `null`, and no
+      playlist call is made, when nothing resolved). Names built by the controller:
+      `prefix + "A → B"` for a path, `prefix + "like A"` for similar.
+      - Resolution (`ResolveItemId`) stayed private, not pulled out into its own
+        no-Jellyfin-runtime-needed class as originally sketched — `BaseItem`/`Audio` are
+        real Jellyfin types either way, so the tests need the runtime assemblies
+        regardless of the split. Tested instead with `Moq` against `ILibraryManager`/
+        `IPlaylistManager` (both interfaces) and real `Audio`/`Playlist` instances
+        (both have public parameterless ctors and virtual, settable `Id`/`Name`/`Path` —
+        confirmed by reflection — so no need to mock them too).
+- [x] `Api/Controllers/NeighbeatsController.cs`, `[ApiController, Route("Neighbeats"), Authorize]`:
       - `GET Health` passes the `HealthResponse` through.
-      - `POST Path` `{fromItemId, toItemId, length?, mode?, theme?}`: look up both items
-        (404 if unknown or not Audio), build `TrackRef{item_id, path}` for each, add
-        `user = User.Username`, fill missing fields from the config defaults, call the client,
-        then the builder. Answer: `{playlistId, tracks, skipped, notes}`.
-      - `POST Similar` `{itemId, count?}`: same answer.
-      - `NeighbeatsException` becomes JSON `{error, why?}` with status 503 (NotRunning),
-        404, 422, 504 (Timeout) or 502 (anything else). Never a bare 500, and Jellyfin keeps running.
-- [ ] Tick the boxes in J-jellyfin-plugin.md for what is really done. Write the B0 findings and
-      the measured answers into its open questions.
+      - `POST Path` `{fromItemId, toItemId, length?, mode?, theme?}` (Jellyfin item ids,
+        not `TrackRef`s — the controller looks both up itself via `ILibraryManager` and
+        404s if either isn't a known `Audio` item): builds `TrackRef{item_id, path}` for
+        each from the resolved item, adds `user = auth.User.Username` via
+        `IAuthorizationContext.GetAuthorizationInfo(HttpContext)`, fills missing fields
+        from the config defaults, calls the client, then the builder. Answer:
+        `PlaylistBuildResponse { PlaylistId, Tracks (count), Skipped, Notes }`.
+      - `POST Similar` `{itemId, count?}`: same answer shape.
+      - `NeighbeatsException` becomes `ApiErrorBody { Error, Why? }` JSON with status 503
+        (NotRunning), 404 (NotFound), 422 (NoRoute), 504 (Timeout) or 502 (BadRequest /
+        ServerError — anything else). Never a bare 500; Jellyfin keeps running regardless
+        of what neighbeats does.
+      - `PlaylistBuilder` and `NeighbeatsClient` both registered via
+        `PluginServiceRegistrator` (scoped and typed-HttpClient respectively).
+- [x] Tests: 4 more in `PlaylistBuilderTests.cs` (resolve by id, fall back to path, skip
+      when neither resolves, update an existing playlist instead of creating a new one).
+      **11/11 passing.** `dotnet build -c Release`: 0 warnings, 0 errors across both
+      projects. The test project needed its own direct `Jellyfin.Controller`/`Model`
+      package references (without `ExcludeAssets=runtime`) — the main project excludes
+      the runtime assets because the real Jellyfin host supplies them, but the test host
+      runs standalone and needs the actual DLLs copied to its own output.
+- [x] Boxes ticked in J-jellyfin-plugin.md; B0 findings and measured answers already
+      written into its open questions (previous commit).
 
 ## Verification
 
